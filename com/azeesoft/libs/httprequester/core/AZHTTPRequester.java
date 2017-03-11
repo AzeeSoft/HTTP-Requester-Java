@@ -54,12 +54,6 @@ public abstract class AZHTTPRequester {
             nameValuePairs = new ArrayList<>();
     }
 
-    public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
-
-    public abstract void onResult(JSONObject jobj);
-
-    public abstract void onError(String errMsg);
-
 
     public void addParam(String name, int value) {
         addParam(name, Integer.toString(value));
@@ -214,15 +208,21 @@ public abstract class AZHTTPRequester {
         return null;
     }
 
-    public interface OnResultListener {
+    abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
+
+    abstract void onResult(JSONObject jobj);
+
+    abstract void onError(String errMsg);
+
+    interface OnResultListener {
         void onResult(JSONObject jobj);
     }
 
-    public interface OnPrepareListener {
+    interface OnPrepareListener {
         void onPrepare(AZHTTPRequester AZHTTPRequester);
     }
 
-    public interface OnErrorListener {
+    interface OnErrorListener {
         void onError(String errMsg);
     }
 
