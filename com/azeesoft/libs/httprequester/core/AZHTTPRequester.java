@@ -91,7 +91,7 @@ public abstract class AZHTTPRequester {
         onResultListenerList.add(orl);
     }
 
-    public void addOnRequestInitListener(OnPrepareListener oril) {
+    public void addOnPrepareListener(OnPrepareListener oril) {
         onPrepareListenerList.add(oril);
     }
 
