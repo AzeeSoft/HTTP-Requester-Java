@@ -54,11 +54,6 @@ public abstract class AZHTTPRequester {
             nameValuePairs = new ArrayList<>();
     }
 
-    public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
-
-    public abstract void onResult(JSONObject jobj);
-
-    public abstract void onError(String errMsg);
 
 
     public void addParam(String name, int value) {
@@ -158,7 +153,7 @@ public abstract class AZHTTPRequester {
     private void execResults(JSONObject jsonObject) {
         onResult(jsonObject);
         for (OnResultListener onResultListener : onResultListenerList)
-            onResultListener.onResult(jobj);
+            onResultListener.onResult(jsonObject);
     }
 
     private void execErrors(String msg) {
@@ -213,6 +208,13 @@ public abstract class AZHTTPRequester {
 
         return null;
     }
+
+
+    public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
+
+    public abstract void onResult(JSONObject jobj);
+
+    public abstract void onError(String errMsg);
 
     public interface OnResultListener {
         void onResult(JSONObject jobj);
