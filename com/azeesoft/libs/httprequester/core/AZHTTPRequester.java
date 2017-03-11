@@ -6,7 +6,6 @@
 
 package com.azeesoft.libs.httprequester.core;
 
-import com.azeesoft.libs.httprequester.core.tools.QT;
 import javafx.application.Platform;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -30,7 +29,7 @@ import static org.apache.http.HttpHeaders.USER_AGENT;
 /**
  * @author azizt
  */
-public abstract class HTTPRequester {
+public abstract class AZHTTPRequester {
 
     final int GET = 0, POST = 1;
 
@@ -43,19 +42,19 @@ public abstract class HTTPRequester {
     private List<OnResultListener> onResultListenerList = new ArrayList<>();
     private List<OnErrorListener> onErrorListenerList = new ArrayList<>();
 
-    public HTTPRequester(String url) {
+    public AZHTTPRequester(String url) {
         this.URL = url;
         nameValuePairs = new ArrayList<>();
     }
 
-    public HTTPRequester(String url, int method) {
+    public AZHTTPRequester(String url, int method) {
         this.URL = url;
         this.method = method;
         if (method == POST)
             nameValuePairs = new ArrayList<>();
     }
 
-    public abstract void onPrepare(HTTPRequester httpRequester);
+    public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
 
     public abstract void onResult(JSONObject jobj);
 
@@ -123,7 +122,7 @@ public abstract class HTTPRequester {
                 try {
                     jobj = performHTTPRequest();
                 } catch (Exception ex) {
-                    //Logger.getLogger(HTTPRequester.class.getName()).log(Level.SEVERE, null, ex);
+                    //Logger.getLogger(AZHTTPRequester.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Exception :" + ex);
                 }
 
@@ -220,7 +219,7 @@ public abstract class HTTPRequester {
     }
 
     public interface OnPrepareListener {
-        void onPrepare(HTTPRequester httpRequester);
+        void onPrepare(AZHTTPRequester AZHTTPRequester);
     }
 
     public interface OnErrorListener {
