@@ -164,7 +164,7 @@ public abstract class AZHTTPRequester {
     private void execErrors(String msg) {
         onError(msg);
         for (OnErrorListener onErrorListener : onErrorListenerList)
-            onErrorListener.onError(leftout + " cannot be left empty");
+            onErrorListener.onError(msg);
     }
 
     private JSONObject performHTTPRequest() throws IOException {
