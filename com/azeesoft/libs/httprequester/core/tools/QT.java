@@ -9,10 +9,5 @@ public class QT {
     public static void PL(String s) {
         System.out.println(s);
     }
-
-
-    public static Preferences getPreferences() {
-        return Preferences.userRoot().node("AZDDNSUpdater");
-    }
 }
 

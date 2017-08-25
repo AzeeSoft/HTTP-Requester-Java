@@ -6,19 +6,19 @@
 
 package com.azeesoft.libs.httprequester.core;
 
-import javafx.application.Platform;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -29,32 +29,40 @@ import static org.apache.http.HttpHeaders.USER_AGENT;
 /**
  * @author azizt
  */
-public abstract class AZHTTPRequester {
+public class AZHTTPRequester {
 
-    final int GET = 0, POST = 1;
+    static final int GET = 0, POST = 1;
 
     private String URL, leftout = "", realName = "";
     private int method = POST;
     private boolean cancelled = false;
-    private List<NameValuePair> nameValuePairs;
+    protected List<NameValuePair> nameValuePairs;
+    private String resultString = "";
     private JSONObject jobj;
     private List<OnPrepareListener> onPrepareListenerList = new ArrayList<>();
     private List<OnResultListener> onResultListenerList = new ArrayList<>();
     private List<OnErrorListener> onErrorListenerList = new ArrayList<>();
 
+    private MultipartEntityBuilder multipartEntityBuilder;
+
+    private UiUpdater uiUpdater;
+
     public AZHTTPRequester(String url) {
-        this.URL = url;
-        nameValuePairs = new ArrayList<>();
+        this(url, POST);
     }
 
     public AZHTTPRequester(String url, int method) {
         this.URL = url;
         this.method = method;
-        if (method == POST)
+        if (method == POST) {
             nameValuePairs = new ArrayList<>();
+            multipartEntityBuilder = MultipartEntityBuilder.create();
+        }
     }
 
-
+    public void setUiUpdater(UiUpdater uiUpdater) {
+        this.uiUpdater = uiUpdater;
+    }
 
     public void addParam(String name, int value) {
         addParam(name, Integer.toString(value));
@@ -65,7 +73,7 @@ public abstract class AZHTTPRequester {
     }
 
     public void addParam(String name, String value, boolean leaveable) {
-        if (nameValuePairs != null) {
+        if (method == POST) {
             value = value.trim();
             if (value.equals("") && !leaveable) {
                 leftout = name;
@@ -73,6 +81,7 @@ public abstract class AZHTTPRequester {
             }
 
             nameValuePairs.add(new BasicNameValuePair(name, value));
+            multipartEntityBuilder.addTextBody(name, value, ContentType.TEXT_PLAIN);
         }
     }
 
@@ -83,8 +92,30 @@ public abstract class AZHTTPRequester {
                 leftout = actualName;
                 realName = name;
             }
+
             nameValuePairs.add(new BasicNameValuePair(name, value));
+            multipartEntityBuilder.addTextBody(name, value, ContentType.TEXT_PLAIN);
         }
+    }
+
+    public String getParam(String name) {
+        if (nameValuePairs != null) {
+            for (NameValuePair nameValuePair : nameValuePairs) {
+                if (nameValuePair.getName().equals(name)) {
+                    return nameValuePair.getValue();
+                }
+            }
+        }
+
+        return "";
+    }
+
+    public void addFile(String name, File file) {
+        multipartEntityBuilder.addBinaryBody(name, file, ContentType.APPLICATION_OCTET_STREAM, file.getName());
+    }
+
+    public String getResultString() {
+        return resultString;
     }
 
     public void addOnResultListener(OnResultListener orl) {
@@ -115,7 +146,8 @@ public abstract class AZHTTPRequester {
         if (!cancelled) {
             new Thread(() -> {
                 try {
-                    jobj = performHTTPRequest();
+                    resultString = performHTTPRequest();
+                    jobj = new JSONObject(resultString);
                 } catch (Exception ex) {
                     //Logger.getLogger(AZHTTPRequester.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Exception :" + ex);
@@ -127,17 +159,30 @@ public abstract class AZHTTPRequester {
                     return;
                 }
 
-                String msg = "Error Connecting to Server";
+                Runnable runnable;
                 if (jobj == null) {
 //                    System.out.println(msg);
-                    onError(msg);
+//                    onError(msg);
+                    runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            String msg = "Error Connecting to Server";
+                            execErrors(msg);
+                        }
+                    };
                 } else {
-                    Platform.runLater(new Runnable() {
+                    runnable = new Runnable() {
                         @Override
                         public void run() {
                             execResults(jobj);
                         }
-                    });
+                    };
+                }
+
+                if (uiUpdater != null) {
+                    uiUpdater.runOnUiThread(runnable);
+                } else {
+                    runnable.run();
                 }
 
             }).start();
@@ -145,24 +190,24 @@ public abstract class AZHTTPRequester {
     }
 
     private void execPrepares() {
-        onPrepare(this);
+//        onPrepare(this);
         for (OnPrepareListener onPrepareListener : onPrepareListenerList)
             onPrepareListener.onPrepare(this);
     }
 
     private void execResults(JSONObject jsonObject) {
-        onResult(jsonObject);
+//        onResult(jsonObject);
         for (OnResultListener onResultListener : onResultListenerList)
-            onResultListener.onResult(jsonObject);
+            onResultListener.onResult(this, jsonObject);
     }
 
     private void execErrors(String msg) {
-        onError(msg);
+//        onError(msg);
         for (OnErrorListener onErrorListener : onErrorListenerList)
-            onErrorListener.onError(msg);
+            onErrorListener.onError(this, msg);
     }
 
-    private JSONObject performHTTPRequest() throws IOException {
+    private String performHTTPRequest() throws IOException {
         HttpClient client = HttpClientBuilder.create().build();
         StringBuffer result = new StringBuffer();
 
@@ -171,7 +216,7 @@ public abstract class AZHTTPRequester {
             request.addHeader("User-Agent", USER_AGENT);
             HttpResponse response = client.execute(request);
 
-            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
+//            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
 
             BufferedReader rd = new BufferedReader(
                     new InputStreamReader(response.getEntity().getContent()));
@@ -185,10 +230,11 @@ public abstract class AZHTTPRequester {
             HttpPost post = new HttpPost(URL);
 
             post.setHeader("User-Agent", USER_AGENT);
-            post.setEntity(new UrlEncodedFormEntity(this.nameValuePairs));
+//            post.setEntity(new UrlEncodedFormEntity(this.nameValuePairs));
+            post.setEntity(multipartEntityBuilder.build());
 
             HttpResponse response = client.execute(post);
-            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
+//            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
 
             BufferedReader rd = new BufferedReader(
                     new InputStreamReader(response.getEntity().getContent()));
@@ -200,32 +246,30 @@ public abstract class AZHTTPRequester {
             rd.close();
         }
 
-        try {
-            return new JSONObject(result.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return result.toString();
     }
 
 
-    public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
+    /*public abstract void onPrepare(AZHTTPRequester AZHTTPRequester);
 
     public abstract void onResult(JSONObject jobj);
 
-    public abstract void onError(String errMsg);
+    public abstract void onError(String errMsg);*/
 
     public interface OnResultListener {
-        void onResult(JSONObject jobj);
+        void onResult(AZHTTPRequester azhttpRequester, JSONObject jobj);
     }
 
     public interface OnPrepareListener {
-        void onPrepare(AZHTTPRequester AZHTTPRequester);
+        void onPrepare(AZHTTPRequester azhttpRequester);
     }
 
     public interface OnErrorListener {
-        void onError(String errMsg);
+        void onError(AZHTTPRequester azhttpRequester, String errMsg);
+    }
+
+    public interface UiUpdater {
+        void runOnUiThread(Runnable runnable);
     }
 
 }
