@@ -37,7 +37,7 @@ public class Tester {
 
         /*azhttpRequester.setUiUpdater(new AZHTTPRequester.UiUpdater() {
             @Override
-            public void runOnUiThread(Runnable runnable) {
+            public void runOnMainThread(Runnable runnable) {
                 runnable.run();
             }
         });*/

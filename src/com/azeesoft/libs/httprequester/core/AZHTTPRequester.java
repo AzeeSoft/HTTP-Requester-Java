@@ -180,7 +180,7 @@ public class AZHTTPRequester {
                 }
 
                 if (uiUpdater != null) {
-                    uiUpdater.runOnUiThread(runnable);
+                    uiUpdater.runOnMainThread(runnable);
                 } else {
                     runnable.run();
                 }
@@ -269,7 +269,7 @@ public class AZHTTPRequester {
     }
 
     public interface UiUpdater {
-        void runOnUiThread(Runnable runnable);
+        void runOnMainThread(Runnable runnable);
     }
 
 }
